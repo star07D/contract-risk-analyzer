@@ -1,76 +1,109 @@
 # 📱 Contract Risk Analyzer
 
-A Flutter application to manage recurring contracts (internet, subscriptions, insurance, etc.) and analyze their financial risk based on duration, renewal cycles, and notice periods.
+Contract Risk Analyzer is a Flutter application designed to manage recurring contracts
+such as subscriptions, internet plans, insurance, and service agreements.  
+The app helps users **store contracts locally**, **calculate yearly costs**, and
+**assess risk levels** based on renewal cycles, notice periods, and contract duration.
 
-Built with **Clean Architecture**, **Riverpod**, and **Drift (SQLite)**.
+This project is built with **production-grade architecture**, focusing on
+scalability, maintainability, and real-world Flutter development practices.
 
 ---
 
 ## 🚀 Features
 
-- Add contracts with cost, category, duration & renewal details
-- View yearly cost breakdown
-- Risk tagging (LOW / MEDIUM / HIGH)
-- Long-press delete with instant UI refresh
-- Offline-first (local SQLite database)
+- Add and manage recurring contracts
+- Automatic yearly cost calculation
+- Risk classification (Low / Medium / High)
+- Long-press delete with database synchronization
+- Local persistence using SQLite
+- Smooth loading & error handling
+- Reactive UI updates using Riverpod
 
 ---
 
-## 🧠 Architecture
+## 🧠 Architecture Overview
 
-This project follows **Clean Architecture** principles:
+This project follows **Clean Architecture**, ensuring a clear separation of concerns
+and long-term maintainability.
 
 lib/
-├── domain/ # Business logic (entities, repositories, services)
-├── data/ # Database & repository implementations (Drift)
-├── presentation/ # UI & state management (Riverpod)
-├── core/ # Shared utilities & constants
+├── core/ # Shared constants and utilities
+├── domain/ # Business logic (entities, repository contracts, services)
+├── data/ # Data layer (Drift database, repository implementations)
+│ ├── database/
+│ └── repositories/
+├── presentation/ # UI layer (screens, widgets, Riverpod providers)
+└── main.dart
 
 yaml
 Copy code
 
-### Why this architecture?
-- Clear separation of concerns
-- Testable business logic
-- Scalable for real production apps
-- Matches industry best practices
+### Why Clean Architecture?
+- Business logic is independent of UI and database
+- Easy to test and extend
+- Matches real-world enterprise Flutter projects
+- Highly valued by recruiters and engineering teams
 
 ---
 
-## 🛠 Tech Stack
+## 🧪 Technical Highlights
 
-- **Flutter**
-- **Dart**
-- **Riverpod** – State management
-- **Drift (SQLite)** – Local database
-- **Build Runner** – Code generation
-- **Git** – Version control
-
----
-
-## 📸 Screenshots
-_(Coming soon)_
+- Flutter & Dart
+- Clean Architecture (Domain / Data / Presentation)
+- Riverpod for state management
+- Drift (SQLite) for type-safe local database
+- Repository pattern
+- Async UI handling with `AsyncValue`
+- Automatic UI refresh via provider invalidation
+- Strong error handling and null safety
 
 ---
 
-## 🧪 Key Technical Highlights
+## 🗄️ Data Persistence
 
-- Async state handling with `AsyncValue`
-- Repository pattern (domain → data separation)
-- Auto-refresh using provider invalidation
-- Proper DB schema management with Drift
-- Error-safe UI states (loading / empty / error)
+The app uses **Drift (SQLite)** for local storage:
+- Type-safe queries
+- Compile-time validation
+- Reliable offline access
+- Structured database schema
+
+All contracts are stored locally and reflected instantly in the UI.
 
 ---
 
-## 📦 Setup & Run
+## 🛠️ Tools & Technologies
 
-```bash
-flutter pub get
-flutter pub run build_runner build --delete-conflicting-outputs
-flutter run
+- Flutter
+- Dart
+- Riverpod
+- Drift (SQLite)
+- Android Studio
+- Git & GitHub
 
-👨‍💻 Author
-Dhruv
-MSc IT Project Management | Mobile Application Developer
-Focused on Flutter, Android, and scalable app architecture
+---
+
+## 📌 Future Enhancements
+
+- Edit existing contracts
+- Contract analytics & charts
+- Cloud sync (Firebase)
+- Contract reminders & notifications
+- Multi-language support
+
+---
+
+## 👨‍💻 About the Developer
+
+**Dhruv**  
+MSc IT Project Management  
+Mobile Application Developer (Flutter & Android)
+
+Focused on building scalable, maintainable mobile applications using modern
+Flutter architecture patterns and industry-standard tools.
+
+---
+
+## 📄 License
+
+This project is for educational and portfolio purposes.
