@@ -1,47 +1,63 @@
 import '../entities/contract_entity.dart';
-
-enum RiskLevel {
-  low,
-  medium,
-  high,
-}
+import '../entities/risk_summary.dart';
 
 class ContractRiskService {
-  /// Calculates risk based on contract conditions
   static RiskLevel calculateRisk(ContractEntity contract) {
-    final yearlyCost =
-    contract.isMonthlyCost ? contract.cost * 12 : contract.cost;
+    int score = 0;
 
-    int riskScore = 0;
+    if (contract.isMonthlyCost) score += 1;
+    if (contract.minimumDurationMonths >= 12) score += 1;
+    if (contract.noticePeriodDays >= 60) score += 1;
+    if (contract.cost >= 100) score += 1;
 
-    // Long lock-in increases risk
-    if (contract.minimumDurationMonths >= 24) {
-      riskScore += 2;
-    }
-
-    // Short notice period increases risk
-    if (contract.noticePeriodDays <= 30) {
-      riskScore += 2;
-    }
-
-    // High yearly cost increases risk
-    if (yearlyCost >= 400) {
-      riskScore += 2;
-    }
-
-    if (riskScore >= 4) return RiskLevel.high;
-    if (riskScore >= 2) return RiskLevel.medium;
+    if (score >= 4) return RiskLevel.high;
+    if (score >= 2) return RiskLevel.medium;
     return RiskLevel.low;
   }
 
-  /// Calculates worst-case cost if user does nothing
-  static double calculateWorstCaseCost(
-      ContractEntity contract,
-      int months,
-      ) {
-    final monthlyCost =
-    contract.isMonthlyCost ? contract.cost : contract.cost / 12;
+  static RiskSummary buildSummary(List<ContractEntity> contracts) {
+    double totalMonthly = 0;
+    double totalYearly = 0;
 
-    return monthlyCost * months;
+    int low = 0;
+    int medium = 0;
+    int high = 0;
+
+    RiskLevel highest = RiskLevel.low;
+
+    for (final contract in contracts) {
+      final risk = calculateRisk(contract);
+
+      switch (risk) {
+        case RiskLevel.low:
+          low++;
+          break;
+        case RiskLevel.medium:
+          medium++;
+          highest = RiskLevel.medium;
+          break;
+        case RiskLevel.high:
+          high++;
+          highest = RiskLevel.high;
+          break;
+      }
+
+      if (contract.isMonthlyCost) {
+        totalMonthly += contract.cost;
+        totalYearly += contract.cost * 12;
+      } else {
+        totalYearly += contract.cost;
+      }
+    }
+
+    return RiskSummary(
+      totalMonthlyCost: totalMonthly,
+      totalYearlyCost: totalYearly,
+      totalContracts: contracts.length,
+      lowRiskCount: low,
+      mediumRiskCount: medium,
+      highRiskCount: high,
+      highestRisk: highest,
+    );
   }
 }

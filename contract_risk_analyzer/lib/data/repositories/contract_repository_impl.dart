@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/entities/contract_entity.dart';
+import '../../domain/entities/risk_summary.dart';
 import '../../domain/repositories/contract_repository.dart';
+import '../../domain/services/contract_risk_service.dart';
 import '../database/app_database.dart';
 
 class ContractRepositoryImpl implements ContractRepository {
@@ -10,8 +12,50 @@ class ContractRepositoryImpl implements ContractRepository {
   ContractRepositoryImpl(this.db);
 
   @override
-  Future<void> addContract(ContractEntity contract) async {
-    await db.into(db.contracts).insert(
+  Future<List<ContractEntity>> getAllContracts() async {
+    final rows = await db.select(db.contracts).get();
+
+    return rows.map((row) {
+      //Create a temporary entity WITHOUT real risk
+      final temp = ContractEntity(
+        id: row.id,
+        name: row.name,
+        category: ContractCategory.values.firstWhere(
+              (e) => e.name == row.category,
+          orElse: () => ContractCategory.other,
+        ),
+        cost: row.cost,
+        isMonthlyCost: row.isMonthlyCost,
+        startDate: row.startDate,
+        minimumDurationMonths: row.minimumDurationMonths,
+        noticePeriodDays: row.noticePeriodDays,
+        renewalCycleMonths: row.renewalCycleMonths,
+        riskLevel: RiskLevel.low, // placeholder
+      );
+
+      //Calculate real risk in domain layer
+      final calculatedRisk =
+      ContractRiskService.calculateRisk(temp);
+
+      //Return FINAL entity
+      return ContractEntity(
+        id: temp.id,
+        name: temp.name,
+        category: temp.category,
+        cost: temp.cost,
+        isMonthlyCost: temp.isMonthlyCost,
+        startDate: temp.startDate,
+        minimumDurationMonths: temp.minimumDurationMonths,
+        noticePeriodDays: temp.noticePeriodDays,
+        renewalCycleMonths: temp.renewalCycleMonths,
+        riskLevel: calculatedRisk,
+      );
+    }).toList();
+  }
+
+  @override
+  Future<void> addContract(ContractEntity contract) {
+    return db.into(db.contracts).insert(
       ContractsCompanion.insert(
         name: contract.name,
         category: contract.category.name,
@@ -26,32 +70,11 @@ class ContractRepositoryImpl implements ContractRepository {
   }
 
   @override
-  Future<List<ContractEntity>> getAllContracts() async {
-    final rows = await db.select(db.contracts).get();
-
-    return rows
-        .map(
-          (row) => ContractEntity(
-        id: row.id,
-        name: row.name,
-        category: ContractCategory.values
-            .firstWhere((e) => e.name == row.category),
-        cost: row.cost,
-        isMonthlyCost: row.isMonthlyCost,
-        startDate: row.startDate,
-        minimumDurationMonths: row.minimumDurationMonths,
-        noticePeriodDays: row.noticePeriodDays,
-        renewalCycleMonths: row.renewalCycleMonths,
-      ),
-    )
-        .toList();
-  }
-
-  @override
-  Future<void> updateContract(ContractEntity contract) async {
-    await db.update(db.contracts).replace(
+  Future<void> updateContract(ContractEntity contract) {
+    return (db.update(db.contracts)
+      ..where((tbl) => tbl.id.equals(contract.id!)))
+        .write(
       ContractsCompanion(
-        id: Value(contract.id!),
         name: Value(contract.name),
         category: Value(contract.category.name),
         cost: Value(contract.cost),
@@ -67,8 +90,8 @@ class ContractRepositoryImpl implements ContractRepository {
   }
 
   @override
-  Future<void> deleteContract(int id) async {
-    await (db.delete(db.contracts)
+  Future<void> deleteContract(int id) {
+    return (db.delete(db.contracts)
       ..where((tbl) => tbl.id.equals(id)))
         .go();
   }
