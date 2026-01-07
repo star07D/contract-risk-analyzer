@@ -5,5 +5,7 @@ abstract class ContractRepository {
 
   Future<void> addContract(ContractEntity contract);
 
+  Future<void> updateContract(ContractEntity contract);
+
   Future<void> deleteContract(int id);
 }
