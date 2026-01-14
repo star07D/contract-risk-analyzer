@@ -1,22 +1,28 @@
 import 'package:drift/drift.dart';
 
+import '../../core/notifications/notification_bootstrap.dart';
 import '../../domain/entities/contract_entity.dart';
 import '../../domain/entities/risk_summary.dart';
 import '../../domain/repositories/contract_repository.dart';
 import '../../domain/services/contract_risk_service.dart';
+import '../../domain/services/contract_notification_scheduler.dart';
 import '../database/app_database.dart';
 
 class ContractRepositoryImpl implements ContractRepository {
   final AppDatabase db;
+  final ContractNotificationScheduler _notificationScheduler;
 
-  ContractRepositoryImpl(this.db);
+  ContractRepositoryImpl(
+      this.db,
+      this._notificationScheduler,
+      );
 
   @override
   Future<List<ContractEntity>> getAllContracts() async {
     final rows = await db.select(db.contracts).get();
 
     return rows.map((row) {
-      //Create a temporary entity WITHOUT real risk
+      //Temporary entity (no real risk yet)
       final temp = ContractEntity(
         id: row.id,
         name: row.name,
@@ -37,7 +43,7 @@ class ContractRepositoryImpl implements ContractRepository {
       final calculatedRisk =
       ContractRiskService.calculateRisk(temp);
 
-      //Return FINAL entity
+      //Return final entity
       return ContractEntity(
         id: temp.id,
         name: temp.name,
@@ -54,8 +60,8 @@ class ContractRepositoryImpl implements ContractRepository {
   }
 
   @override
-  Future<void> addContract(ContractEntity contract) {
-    return db.into(db.contracts).insert(
+  Future<void> addContract(ContractEntity contract) async {
+    final id = await db.into(db.contracts).insert(
       ContractsCompanion.insert(
         name: contract.name,
         category: contract.category.name,
@@ -67,11 +73,15 @@ class ContractRepositoryImpl implements ContractRepository {
         renewalCycleMonths: contract.renewalCycleMonths,
       ),
     );
+
+    // Schedule notification AFTER successful save
+    final savedContract = contract.copyWith(id: id);
+    await _notificationScheduler.scheduleForContracts([savedContract]);
   }
 
   @override
-  Future<void> updateContract(ContractEntity contract) {
-    return (db.update(db.contracts)
+  Future<void> updateContract(ContractEntity contract) async {
+    await (db.update(db.contracts)
       ..where((tbl) => tbl.id.equals(contract.id!)))
         .write(
       ContractsCompanion(
@@ -87,12 +97,18 @@ class ContractRepositoryImpl implements ContractRepository {
         Value(contract.renewalCycleMonths),
       ),
     );
+
+    // Re-schedule notification after update
+    await _notificationScheduler.scheduleForContracts([contract]);
   }
 
   @override
-  Future<void> deleteContract(int id) {
-    return (db.delete(db.contracts)
+  Future<void> deleteContract(int id) async {
+    await (db.delete(db.contracts)
       ..where((tbl) => tbl.id.equals(id)))
         .go();
+
+    // Cancel any scheduled notification for this contract
+    await NotificationBootstrap.notifications.cancel(id);
   }
 }

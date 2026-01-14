@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/repositories/contract_repository_provider.dart';
+import '../../domain/entities/contract_entity.dart';
 import '../../domain/entities/risk_summary.dart';
 import '../../domain/services/contract_risk_service.dart';
-import '../screens/add_contract_screen.dart';
-import 'contracts_provider.dart';
+import '../../data/repositories/contract_repository_provider.dart';
+import 'add_contract_screen.dart';
+import '../providers/contracts_provider.dart';
 import 'risk_summary_screen.dart';
 
 class ContractsListScreen extends ConsumerWidget {
@@ -22,6 +23,42 @@ class ContractsListScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _confirmDelete(
+      BuildContext context,
+      WidgetRef ref,
+      ContractEntity contract,
+      ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Contract'),
+        content: Text(
+          'Are you sure you want to delete "${contract.name}"?\n\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      final repository = ref.read(contractRepositoryProvider);
+      await repository.deleteContract(contract.id!);
+      ref.invalidate(contractsProvider);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contractsAsync = ref.watch(contractsProvider);
@@ -32,6 +69,7 @@ class ContractsListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.analytics),
+            tooltip: 'Risk Summary',
             onPressed: () {
               Navigator.push(
                 context,
@@ -40,7 +78,7 @@ class ContractsListScreen extends ConsumerWidget {
                 ),
               );
             },
-          )
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -60,7 +98,9 @@ class ContractsListScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (contracts) {
           if (contracts.isEmpty) {
-            return const Center(child: Text('No contracts added yet'));
+            return const Center(
+              child: Text('No contracts added yet'),
+            );
           }
 
           return ListView.builder(
@@ -71,8 +111,10 @@ class ContractsListScreen extends ConsumerWidget {
               ContractRiskService.calculateRisk(contract);
 
               return Card(
-                margin:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: ListTile(
                   title: Text(contract.name),
                   subtitle: Text(
@@ -83,7 +125,8 @@ class ContractsListScreen extends ConsumerWidget {
                     backgroundColor: _riskColor(risk),
                     label: Text(
                       risk.name.toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
+                      style:
+                      const TextStyle(color: Colors.white),
                     ),
                   ),
                   onTap: () {
@@ -96,14 +139,8 @@ class ContractsListScreen extends ConsumerWidget {
                       ),
                     );
                   },
-                  onLongPress: () async {
-                    // ✅ SAFE: DB contracts ALWAYS have an ID
-                    final id = contract.id!;
-                    final repository =
-                    ref.read(contractRepositoryProvider);
-
-                    await repository.deleteContract(id);
-                    ref.invalidate(contractsProvider);
+                  onLongPress: () {
+                    _confirmDelete(context, ref, contract);
                   },
                 ),
               );

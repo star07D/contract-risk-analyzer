@@ -5,6 +5,7 @@ import '../services/contract_risk_service.dart';
 
 enum ContractCategory {
   streaming,
+  gym,
   travelpass,
   utilities,
   insurance,
